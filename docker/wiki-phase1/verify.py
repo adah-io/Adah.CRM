@@ -92,7 +92,11 @@ def assert_source_pins():
 def assert_apps():
 	output = subprocess.check_output(["bench", "--site", SITE, "list-apps", "--format", "json"], text=True)
 	installed = json.loads(output)
-	names = {item["app_name"] if isinstance(item, dict) else item for item in installed}
+	if isinstance(installed, dict):
+		app_rows = [item for site_apps in installed.values() for item in site_apps]
+	else:
+		app_rows = installed
+	names = {item["app_name"] if isinstance(item, dict) else item for item in app_rows}
 	assert {"frappe", "crm", "wiki"}.issubset(names), installed
 
 
