@@ -88,7 +88,10 @@ def _assign_wiki_user_role() -> None:
 
 	users = frappe.get_all(
 		"Has Role",
-		filters={"role": ("in", ["Sales User", "Sales Manager"])},
+		filters={
+			"parenttype": "User",
+			"role": ("in", ["Sales User", "Sales Manager"]),
+		},
 		pluck="parent",
 	)
 	for user_name in set(users):
