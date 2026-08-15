@@ -94,6 +94,7 @@ def validate_wiki_document(doc, method=None) -> None:
 def upload_wiki_asset():
 	"""Store editor assets privately and attach them to the protected Wiki Space."""
 	import frappe
+	from frappe import _
 	from wiki.api import upload_wiki_asset as upstream_upload_wiki_asset
 	from wiki.permissions import can_write_space
 
@@ -101,11 +102,11 @@ def upload_wiki_asset():
 
 	space = get_adah_space()
 	if not space or not can_write_space(space.name):
-		frappe.throw("You are not permitted to upload Adah Docs assets.", frappe.PermissionError)
+		frappe.throw(_("You are not permitted to upload Adah Docs assets."), frappe.PermissionError)
 
 	uploaded = next(iter(frappe.request.files.values()), None)
 	if not uploaded or not is_safe_asset_filename(uploaded.filename):
-		frappe.throw("This file type is not allowed in Adah Docs.", frappe.ValidationError)
+		frappe.throw(_("This file type is not allowed in Adah Docs."), frappe.ValidationError)
 
 	# Frappe's File permission check follows this attachment back to Wiki Space,
 	# so readers can fetch it while Guest remains denied by native Wiki roles.
