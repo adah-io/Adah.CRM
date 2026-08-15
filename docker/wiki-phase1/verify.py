@@ -67,6 +67,10 @@ def login(user: str, password: str):
 		opener=opener,
 	)
 	assert status == 200, body
+	_, _, desk = request("/app", opener=opener)
+	csrf_match = re.search(r'frappe\.csrf_token\s*=\s*"([^"]+)"', desk)
+	assert csrf_match, "authenticated desk response did not expose a CSRF token"
+	opener.addheaders = [("X-Frappe-CSRF-Token", csrf_match.group(1))]
 	return opener
 
 
