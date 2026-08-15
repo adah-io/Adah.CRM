@@ -1,0 +1,33 @@
+name: Wiki Phase 1 Compatibility
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wiki-phase1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compatibility:
+    name: Pinned CRM + Wiki compatibility harness
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Check out compatibility harness
+        uses: actions/checkout@v6
+
+      - name: Report Docker runtime
+        run: |
+          docker version
+          docker compose version
+
+      - name: Build, install, and verify disposable site
+        run: bash docker/wiki-phase1/run.sh
+
+      - name: Capture container logs on failure
+        if: failure()
+        run: docker compose --file docker/wiki-phase1/compose.yml logs --no-color
