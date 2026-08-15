@@ -1,0 +1,95 @@
+ARG PYTHON_IMAGE=python:3.14.2-slim-bookworm@sha256:e87711ef5c86aaeaa7031718a69db79d334d94c545c709583f651b8185870941
+FROM ${PYTHON_IMAGE} AS runtime
+
+ARG NODE_VERSION=24.19.0
+ARG NODE_SHA256=14b342e71204f811bde6153be8e04b62aef63c236fef92b55f9c83154b409647
+ARG YARN_VERSION=1.22.22
+ARG BENCH_VERSION=5.31.0
+ARG FRAPPE_COMMIT=ba36d03916ee05391bee0cf0f979ab97d552eede
+ARG CRM_COMMIT=4ccd8dfc166c2e7203aba5aca57b1545700c966b
+ARG WIKI_COMMIT=2e4e4f215368387c08553c3c59723c7a2e1bf306
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PATH=/home/frappe/frappe-bench/env/bin:/home/frappe/.local/bin:/usr/local/bin:${PATH}
+
+RUN apt-get update \
+    && apt-get install --no-install-recommends -y \
+        build-essential \
+        curl \
+        git \
+        libcups2-dev \
+        libffi-dev \
+        libjpeg62-turbo-dev \
+        libmariadb-dev \
+        libssl-dev \
+        mariadb-client \
+        pkg-config \
+        redis-tools \
+        xz-utils \
+        zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN curl --fail --location --silent --show-error \
+        "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz" \
+        --output /tmp/node.tar.xz \
+    && echo "${NODE_SHA256}  /tmp/node.tar.xz" | sha256sum --check --strict \
+    && tar --extract --xz --file=/tmp/node.tar.xz --directory=/usr/local --strip-components=1 \
+    && rm /tmp/node.tar.xz \
+    && npm install --global "yarn@${YARN_VERSION}" \
+    && pip install --no-cache-dir "frappe-bench==${BENCH_VERSION}"
+
+RUN useradd --create-home --shell /bin/bash frappe
+USER frappe
+WORKDIR /home/frappe
+
+# Bench accepts branches/tags rather than raw commits. Each source is fetched at
+# exactly one SHA and receives a local immutable tag for Bench to clone.
+RUN git init /tmp/frappe-source \
+    && git -C /tmp/frappe-source remote add origin https://github.com/frappe/frappe.git \
+    && git -C /tmp/frappe-source fetch --depth 1 origin "${FRAPPE_COMMIT}" \
+    && git -C /tmp/frappe-source checkout --detach FETCH_HEAD \
+    && test "$(git -C /tmp/frappe-source rev-parse HEAD)" = "${FRAPPE_COMMIT}" \
+    && git -C /tmp/frappe-source tag phase1-pin
+
+RUN git init /tmp/crm-source \
+    && git -C /tmp/crm-source remote add origin https://github.com/adah-io/Adah.CRM.git \
+    && git -C /tmp/crm-source fetch --depth 1 origin "${CRM_COMMIT}" \
+    && git -C /tmp/crm-source checkout --detach FETCH_HEAD \
+    && test "$(git -C /tmp/crm-source rev-parse HEAD)" = "${CRM_COMMIT}" \
+    && git -C /tmp/crm-source tag phase1-pin
+
+RUN git init /tmp/wiki-source \
+    && git -C /tmp/wiki-source remote add origin https://github.com/frappe/wiki.git \
+    && git -C /tmp/wiki-source fetch --depth 1 origin "${WIKI_COMMIT}" \
+    && git -C /tmp/wiki-source checkout --detach FETCH_HEAD \
+    && test "$(git -C /tmp/wiki-source rev-parse HEAD)" = "${WIKI_COMMIT}" \
+    && git -C /tmp/wiki-source tag phase1-pin
+
+RUN bench init \
+        --frappe-path=file:///tmp/frappe-source \
+        --frappe-branch=phase1-pin \
+        --python=/usr/local/bin/python \
+        --skip-redis-config-generation \
+        --skip-assets \
+        --no-backups \
+        frappe-bench \
+    && cd frappe-bench \
+    && bench get-app --branch phase1-pin --skip-assets crm file:///tmp/crm-source \
+    && bench get-app --branch phase1-pin --skip-assets wiki file:///tmp/wiki-source \
+    && test "$(git -C apps/frappe rev-parse HEAD)" = "${FRAPPE_COMMIT}" \
+    && test "$(git -C apps/crm rev-parse HEAD)" = "${CRM_COMMIT}" \
+    && test "$(git -C apps/wiki rev-parse HEAD)" = "${WIKI_COMMIT}" \
+    && bench setup requirements \
+    && bench build
+
+WORKDIR /home/frappe/frappe-bench
+EXPOSE 8000 9000
+CMD ["bench", "serve", "--port", "8000"]
+
+FROM runtime AS phase1
+
+COPY --chown=frappe:frappe docker/wiki-phase1/entrypoint.sh /opt/wiki-phase1/entrypoint.sh
+COPY --chown=frappe:frappe docker/wiki-phase1/Procfile /opt/wiki-phase1/Procfile
+COPY --chown=frappe:frappe docker/wiki-phase1/verify.py /opt/wiki-phase1/verify.py
+
+ENTRYPOINT ["bash", "/opt/wiki-phase1/entrypoint.sh"]

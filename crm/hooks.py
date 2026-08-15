@@ -116,6 +116,7 @@ before_uninstall = "crm.uninstall.before_uninstall"
 
 # before_app_install = "crm.utils.before_app_install"
 # after_app_install = "crm.utils.after_app_install"
+after_app_install = "crm.wiki.setup.after_app_install"
 
 # Integration Cleanup
 # -------------------
@@ -156,11 +157,21 @@ override_doctype_class = {
 	"Email Template": "crm.overrides.email_template.CustomEmailTemplate",
 }
 
+extend_doctype_class = {
+	"Wiki Document": ["crm.wiki.document.WikiDocumentIntegration"],
+}
+
 # Document Events
 # ---------------
 # Hook on document methods and events
 
 doc_events = {
+	"Wiki Document": {
+		"before_validate": ["crm.wiki.security.validate_wiki_document"],
+	},
+	"Wiki Content Blob": {
+		"before_validate": ["crm.wiki.security.validate_wiki_document"],
+	},
 	"Contact": {
 		"validate": ["crm.api.contact.validate"],
 	},
@@ -252,6 +263,9 @@ before_tests = "crm.tests.before_tests"
 # override_whitelisted_methods = {
 # "frappe.desk.doctype.event.event.get_events": "crm.event.get_events"
 # }
+override_whitelisted_methods = {
+	"wiki.api.upload_wiki_asset": "crm.wiki.upload.upload_wiki_asset",
+}
 #
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,
@@ -316,6 +330,7 @@ after_migrate = [
 	"crm.domain_enrichment.install.seed_default_rules_and_mappings",
 	"crm.install.add_default_scripts",
 	"crm.install.add_web_form_custom_fields",
+	"crm.wiki.setup.configure_wiki",
 ]
 
 standard_dropdown_items = [
