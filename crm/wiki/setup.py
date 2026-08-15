@@ -79,6 +79,10 @@ def _configure_landing_page(space) -> None:
 	if (page.content or "").strip() != "# Welcome to Frappe Wiki!":
 		return
 	page.title = "Welcome to Adah Docs"
+	# Serve the initial leaf at the space root instead of requiring a redirect
+	# through the generated welcome-page slug.
+	page.route = ADAH_SPACE_ROUTE
+	page.is_published = 1
 	page.content = "# Welcome to Adah Docs\n\nInternal documentation for the Adah team."
 	page.save(ignore_permissions=True)
 
