@@ -46,6 +46,7 @@ def configure_wiki() -> None:
 		space.save(ignore_permissions=True)
 
 	_configure_landing_page(space)
+	_configure_writer_doctype_permission()
 	_assign_wiki_user_role()
 	frappe.clear_cache()
 
@@ -103,6 +104,29 @@ def _assign_wiki_user_role() -> None:
 		user = frappe.get_doc("User", user_name)
 		if not any(row.role == "Wiki User" for row in user.roles):
 			user.add_roles("Wiki User")
+
+
+def _configure_writer_doctype_permission() -> None:
+	"""Give the space writer role the base gate needed by Wiki's merge path.
+
+	Wiki's has_permission hook remains authoritative and limits these operations
+	to spaces where Sales Manager has Write access.
+	"""
+	import frappe
+
+	filters = {"parent": "Wiki Document", "role": "Sales Manager", "permlevel": 0}
+	name = frappe.db.get_value("Custom DocPerm", filters, "name")
+	permission = frappe.get_doc("Custom DocPerm", name) if name else frappe.new_doc("Custom DocPerm")
+	permission.update(filters)
+	permission.read = 1
+	permission.write = 1
+	permission.create = 1
+	permission.delete = 1
+	if permission.is_new():
+		permission.insert(ignore_permissions=True)
+	else:
+		permission.save(ignore_permissions=True)
+	frappe.clear_cache(doctype="Wiki Document")
 
 
 def after_app_install(app_name: str) -> None:
