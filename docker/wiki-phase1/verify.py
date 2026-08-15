@@ -175,12 +175,12 @@ def assert_shared_session_permissions_and_security():
 	query = urllib.parse.urlencode(
 		{"fields": json.dumps(["name", "root_group", "route"]), "limit_page_length": 1}
 	)
-	_, _, spaces_body = request(f"/api/resource/Wiki Space?{query}", opener=admin)
+	_, _, spaces_body = request(f"/api/resource/Wiki%20Space?{query}", opener=admin)
 	spaces = json.loads(spaces_body)["data"]
 	assert spaces and spaces[0]["route"] == "docs", spaces
 	space_name = spaces[0]["name"]
 	_, _, space_body = request(
-		f"/api/resource/Wiki Space/{urllib.parse.quote(space_name, safe='')}", opener=admin
+		f"/api/resource/Wiki%20Space/{urllib.parse.quote(space_name, safe='')}", opener=admin
 	)
 	space = json.loads(space_body)["data"]
 	assert space["allow_contributions"] == 0
