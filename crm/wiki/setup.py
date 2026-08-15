@@ -116,11 +116,14 @@ def _configure_doctype_permissions() -> None:
 	"""
 	import frappe
 
-	for role, grants in {
-		"Sales User": {"read": 1},
-		"Sales Manager": {"read": 1, "write": 1, "create": 1, "delete": 1},
-	}.items():
-		filters = {"parent": "Wiki Document", "role": role, "permlevel": 0}
+	permissions = {
+		("Wiki Document", "Sales User"): {"read": 1},
+		("Wiki Document", "Sales Manager"): {"read": 1, "write": 1, "create": 1, "delete": 1},
+		("Wiki Space", "Sales User"): {"read": 1},
+		("Wiki Space", "Sales Manager"): {"read": 1, "write": 1},
+	}
+	for (doctype, role), grants in permissions.items():
+		filters = {"parent": doctype, "role": role, "permlevel": 0}
 		name = frappe.db.get_value("Custom DocPerm", filters, "name")
 		permission = frappe.get_doc("Custom DocPerm", name) if name else frappe.new_doc("Custom DocPerm")
 		permission.update(filters)
@@ -129,7 +132,8 @@ def _configure_doctype_permissions() -> None:
 			permission.insert(ignore_permissions=True)
 		else:
 			permission.save(ignore_permissions=True)
-	frappe.clear_cache(doctype="Wiki Document")
+	for doctype in ("Wiki Document", "Wiki Space"):
+		frappe.clear_cache(doctype=doctype)
 
 
 def after_app_install(app_name: str) -> None:
