@@ -27,6 +27,9 @@ services:
     build:
       context: ../..
       dockerfile: docker/wiki-phase1/Containerfile
+      target: phase1
+      args:
+        CRM_COMMIT: ${CRM_COMMIT:-4ccd8dfc166c2e7203aba5aca57b1545700c966b}
     depends_on:
       mariadb:
         condition: service_healthy
@@ -36,6 +39,7 @@ services:
       PHASE1_SITE: wiki-phase1.localhost
       PHASE1_ADMIN_PASSWORD: admin
       PHASE1_DB_ROOT_PASSWORD: phase1-root
+      CRM_COMMIT: ${CRM_COMMIT:-4ccd8dfc166c2e7203aba5aca57b1545700c966b}
     ports:
       - "8000:8000"
       - "9000:9000"

@@ -3,6 +3,8 @@ set -euo pipefail
 
 project_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 compose_file="${project_dir}/compose.yml"
+repo_dir="$(cd "${project_dir}/../.." && pwd)"
+export CRM_COMMIT="${CRM_COMMIT:-$(git -C "${repo_dir}" rev-parse HEAD)}"
 
 cleanup() {
   docker compose --file "${compose_file}" down --volumes --remove-orphans

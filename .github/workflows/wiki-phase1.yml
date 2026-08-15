@@ -2,6 +2,15 @@ name: Wiki Phase 1 Compatibility
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [develop]
+    paths:
+      - "crm/wiki/**"
+      - "crm/hooks.py"
+      - "frontend/src/components/Layouts/AppSidebar.vue"
+      - "docker/wiki-phase1/**"
+      - ".github/workflows/wiki-phase1.yml"
+      - ".github/workflows/wiki-v16-build.yml"
 
 permissions:
   contents: read
@@ -26,6 +35,8 @@ jobs:
           docker compose version
 
       - name: Build, install, and verify disposable site
+        env:
+          CRM_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
         run: bash docker/wiki-phase1/run.sh
 
       - name: Capture container logs on failure
