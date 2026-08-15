@@ -15,6 +15,8 @@ class WikiDocumentIntegration:
 			if parent:
 				import frappe
 
-				self.wiki_space = frappe.db.get_value("Wiki Document", parent, "wiki_space")
+				self.wiki_space = frappe.db.get_value("Wiki Document", parent, "wiki_space") or frappe.db.get_value(
+					"Wiki Space", {"root_group": parent}, "name"
+				)
 
 		return super().check_permission(permtype, permlevel)
