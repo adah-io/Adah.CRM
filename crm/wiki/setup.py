@@ -46,7 +46,7 @@ def configure_wiki() -> None:
 		space.save(ignore_permissions=True)
 
 	_configure_landing_page(space)
-	_configure_writer_doctype_permission()
+	_configure_doctype_permissions()
 	_assign_wiki_user_role()
 	frappe.clear_cache()
 
@@ -106,26 +106,29 @@ def _assign_wiki_user_role() -> None:
 			user.add_roles("Wiki User")
 
 
-def _configure_writer_doctype_permission() -> None:
-	"""Give the space writer role the base gate needed by Wiki's merge path.
+def _configure_doctype_permissions() -> None:
+	"""Give space roles the base gates needed by Frappe's resource API.
 
-	Wiki's has_permission hook remains authoritative and limits these operations
-	to spaces where Sales Manager has Write access.
+	Frappe checks DocType permissions before Wiki's space-aware permission hook,
+	so readers need the read gate for list queries and writers need the mutation
+	gates for Wiki's merge path. Wiki's hook remains authoritative and limits
+	access to spaces where each role has the corresponding permission.
 	"""
 	import frappe
 
-	filters = {"parent": "Wiki Document", "role": "Sales Manager", "permlevel": 0}
-	name = frappe.db.get_value("Custom DocPerm", filters, "name")
-	permission = frappe.get_doc("Custom DocPerm", name) if name else frappe.new_doc("Custom DocPerm")
-	permission.update(filters)
-	permission.read = 1
-	permission.write = 1
-	permission.create = 1
-	permission.delete = 1
-	if permission.is_new():
-		permission.insert(ignore_permissions=True)
-	else:
-		permission.save(ignore_permissions=True)
+	for role, grants in {
+		"Sales User": {"read": 1},
+		"Sales Manager": {"read": 1, "write": 1, "create": 1, "delete": 1},
+	}.items():
+		filters = {"parent": "Wiki Document", "role": role, "permlevel": 0}
+		name = frappe.db.get_value("Custom DocPerm", filters, "name")
+		permission = frappe.get_doc("Custom DocPerm", name) if name else frappe.new_doc("Custom DocPerm")
+		permission.update(filters)
+		permission.update(grants)
+		if permission.is_new():
+			permission.insert(ignore_permissions=True)
+		else:
+			permission.save(ignore_permissions=True)
 	frappe.clear_cache(doctype="Wiki Document")
 
 
