@@ -157,6 +157,10 @@ override_doctype_class = {
 	"Email Template": "crm.overrides.email_template.CustomEmailTemplate",
 }
 
+extend_doctype_class = {
+	"Wiki Document": ["crm.wiki.document.WikiDocumentIntegration"],
+}
+
 # Document Events
 # ---------------
 # Hook on document methods and events
