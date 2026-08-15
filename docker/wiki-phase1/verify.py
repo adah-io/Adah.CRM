@@ -203,7 +203,7 @@ def assert_shared_session_permissions_and_security():
 
 	title = "Phase 1 Compatibility Page"
 	create_status, _, create_body = request(
-		"/api/resource/Wiki Document",
+		"/api/resource/Wiki%20Document",
 		data={
 			"title": title,
 			"wiki_space": space_name,
@@ -219,16 +219,16 @@ def assert_shared_session_permissions_and_security():
 	name = urllib.parse.quote(created["name"], safe="")
 
 	update_status, _, update_body = request(
-		f"/api/resource/Wiki Document/{name}",
+		f"/api/resource/Wiki%20Document/{name}",
 		data={"content": "# Phase 1\nEdited and rendered successfully."},
 		method="PUT",
 		opener=manager,
 	)
 	assert update_status == 200, update_body
-	_, _, read_body = request(f"/api/resource/Wiki Document/{name}", opener=reader)
+	_, _, read_body = request(f"/api/resource/Wiki%20Document/{name}", opener=reader)
 	assert "Edited and rendered successfully" in read_body
 	denied_status, _, _ = request_status(
-		f"/api/resource/Wiki Document/{name}",
+		f"/api/resource/Wiki%20Document/{name}",
 		data={"content": "reader must not write"},
 		method="PUT",
 		opener=reader,
@@ -240,7 +240,7 @@ def assert_shared_session_permissions_and_security():
 	assert rendered_status == 200 and "Edited and rendered successfully" in rendered_body
 
 	arabic_status, _, arabic_body = request(
-		"/api/resource/Wiki Document",
+		"/api/resource/Wiki%20Document",
 		data={
 			"title": "دليل المبيعات",
 			"wiki_space": space_name,
@@ -264,7 +264,7 @@ def assert_shared_session_permissions_and_security():
 		'<iframe src="https://example.com"></iframe>',
 	):
 		status, _, body = request_status(
-			f"/api/resource/Wiki Document/{name}",
+			f"/api/resource/Wiki%20Document/{name}",
 			data={"content": payload},
 			method="PUT",
 			opener=manager,
