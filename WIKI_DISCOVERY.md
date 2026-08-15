@@ -1,9 +1,9 @@
 # Frappe Wiki Integration Discovery
 
-**Discovery date:** 2026-08-15  
-**Adah CRM target:** `develop` at `4ccd8dfc166c2e7203aba5aca57b1545700c966b`  
-**Upstream Wiki inspected:** `develop` at `2e4e4f215368387c08553c3c59723c7a2e1bf306` (2026-08-14)  
-**Recommendation:** **APPROVE WITH CONDITIONS**  
+**Discovery date:** 2026-08-15
+**Adah CRM target:** `develop` at `4ccd8dfc166c2e7203aba5aca57b1545700c966b`
+**Upstream Wiki inspected:** `develop` at `2e4e4f215368387c08553c3c59723c7a2e1bf306` (2026-08-14)
+**Recommendation:** **APPROVE WITH CONDITIONS**
 **Scope:** Technical and product discovery only. No Wiki installation or application/deployment change is included.
 
 ## Status vocabulary
@@ -37,7 +37,7 @@ One Frappe site / database / user directory
 
 **Candidate version strategy:** use Wiki `develop@2e4e4f215368387c08553c3c59723c7a2e1bf306` only as the integration-test candidate, pinned by immutable commit rather than a floating branch. Prefer a later signed/tagged upstream release that contains this commit's access/search/XSS-related fixes if one exists when implementation begins. Do **not** select `main` (Wiki's default branch is `develop`, and there is no current `main`) or the old `master`. The `v3.0.0` tag (`0a6025159289bcdaae26d727ada34764370ac765`, 2026-07-28) has matching v16/Python 3.14 metadata but predates several relevant fixes on `develop`, so it is not the recommended production pin without a security backport review.
 
-**Blocking conditions before production implementation:** 
+**Blocking conditions before production implementation:**
 
 1. Prove the exact Frappe, Python 3.14, Node/Yarn, CRM, and Wiki pins in the same immutable image and on a restored copy of an Adah site.
 2. Resolve attachment privacy. The current editor calls `useFileUpload(..., { private: false })`, so uploaded images/video/PDFs are public `/files` assets even when the Wiki Space is role-restricted. Page permissions do not make those URLs private. Evidence: [WikiEditor upload path](https://github.com/frappe/wiki/blob/2e4e4f215368387c08553c3c59723c7a2e1bf306/frontend/src/components/WikiEditor.vue) and [upload endpoint](https://github.com/frappe/wiki/blob/2e4e4f215368387c08553c3c59723c7a2e1bf306/wiki/api/__init__.py).
