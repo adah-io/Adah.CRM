@@ -202,6 +202,7 @@ def assert_shared_session_permissions_and_security():
 		"/api/resource/Wiki Document",
 		data={
 			"title": title,
+			"wiki_space": space_name,
 			"parent_wiki_document": spaces[0]["root_group"],
 			"content": "# Phase 1\nCreated by the compatibility smoke test.",
 			"is_published": 1,
@@ -238,6 +239,7 @@ def assert_shared_session_permissions_and_security():
 		"/api/resource/Wiki Document",
 		data={
 			"title": "دليل المبيعات",
+			"wiki_space": space_name,
 			"parent_wiki_document": spaces[0]["root_group"],
 			"content": "# دليل المبيعات\n\nمحتوى عربي آمن.",
 			"is_published": 1,
