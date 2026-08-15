@@ -7,7 +7,12 @@ repo_dir="$(cd "${project_dir}/../.." && pwd)"
 export CRM_COMMIT="${CRM_COMMIT:-$(git -C "${repo_dir}" rev-parse HEAD)}"
 
 cleanup() {
-  docker compose --file "${compose_file}" down --volumes --remove-orphans
+	status=$?
+	if [[ "${status}" -ne 0 ]]; then
+		docker compose --file "${compose_file}" logs --no-color || true
+	fi
+	docker compose --file "${compose_file}" down --volumes --remove-orphans
+	exit "${status}"
 }
 trap cleanup EXIT
 
