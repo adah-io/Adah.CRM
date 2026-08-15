@@ -22,6 +22,7 @@ EXPECTED_PINS = {
 	"crm": os.environ.get("CRM_COMMIT", "4ccd8dfc166c2e7203aba5aca57b1545700c966b"),
 	"wiki": "2e4e4f215368387c08553c3c59723c7a2e1bf306",
 }
+WIKI_CR_API = "/api/method/wiki.frappe_wiki.doctype.wiki_change_request.wiki_change_request."
 
 
 def new_opener():
@@ -72,6 +73,16 @@ def login(user: str, password: str):
 	assert csrf_match, "authenticated desk response did not expose a CSRF token"
 	opener.addheaders = [("X-Frappe-CSRF-Token", csrf_match.group(1))]
 	return opener
+
+
+def wiki_cr_call(opener, method: str, data: dict):
+	status, _, body = request(WIKI_CR_API + method, data=data, method="POST", opener=opener)
+	assert status == 200, body
+	return json.loads(body).get("message")
+
+
+def wiki_cr_status(opener, method: str, data: dict):
+	return request_status(WIKI_CR_API + method, data=data, method="POST", opener=opener)
 
 
 def wait_for_site():
@@ -201,59 +212,50 @@ def assert_shared_session_permissions_and_security():
 	reader = login(reader_email, password)
 	manager = login(manager_email, password)
 
-	title = "Phase 1 Compatibility Page"
-	create_status, _, create_body = request(
-		"/api/resource/Wiki%20Document",
-		data={
-			"title": title,
-			"wiki_space": space_name,
-			"parent_wiki_document": spaces[0]["root_group"],
+	reader_draft_status, _, _ = wiki_cr_status(
+		reader, "get_or_create_draft_change_request", {"wiki_space": space_name}
+	)
+	assert reader_draft_status in (403, 417), reader_draft_status
+
+	draft = wiki_cr_call(
+		manager,
+		"get_or_create_draft_change_request",
+		{"wiki_space": space_name, "title": "Phase 1 compatibility changes"},
+	)
+	cr_name = draft["name"]
+	tree = wiki_cr_call(manager, "get_cr_tree", {"name": cr_name})
+	root_key = tree["root_group"]
+	assert root_key, tree
+	doc_key = wiki_cr_call(
+		manager,
+		"create_cr_page",
+		{
+			"name": cr_name,
+			"parent_key": root_key,
+			"title": "Phase 1 Compatibility Page",
 			"content": "# Phase 1\nCreated by the compatibility smoke test.",
-			"is_published": 1,
 		},
-		method="POST",
-		opener=manager,
 	)
-	assert create_status == 200, create_body
-	created = json.loads(create_body)["data"]
-	name = urllib.parse.quote(created["name"], safe="")
-
-	update_status, _, update_body = request(
-		f"/api/resource/Wiki%20Document/{name}",
-		data={"content": "# Phase 1\nEdited and rendered successfully."},
-		method="PUT",
-		opener=manager,
-	)
-	assert update_status == 200, update_body
-	_, _, read_body = request(f"/api/resource/Wiki%20Document/{name}", opener=reader)
-	assert "Edited and rendered successfully" in read_body
-	denied_status, _, _ = request_status(
-		f"/api/resource/Wiki%20Document/{name}",
-		data={"content": "reader must not write"},
-		method="PUT",
-		opener=reader,
-	)
-	assert denied_status in (403, 417), denied_status
-
-	route = json.loads(read_body)["data"]["route"]
-	rendered_status, _, rendered_body = request(f"/{route.lstrip('/')}", opener=reader)
-	assert rendered_status == 200 and "Edited and rendered successfully" in rendered_body
-
-	arabic_status, _, arabic_body = request(
-		"/api/resource/Wiki%20Document",
-		data={
+	arabic_key = wiki_cr_call(
+		manager,
+		"create_cr_page",
+		{
+			"name": cr_name,
+			"parent_key": root_key,
 			"title": "دليل المبيعات",
-			"wiki_space": space_name,
-			"parent_wiki_document": spaces[0]["root_group"],
+			"slug": "arabic-sales-guide",
 			"content": "# دليل المبيعات\n\nمحتوى عربي آمن.",
-			"is_published": 1,
 		},
-		method="POST",
-		opener=manager,
 	)
-	assert arabic_status == 200, arabic_body
-	arabic_route = json.loads(arabic_body)["data"]["route"]
-	assert "محتوى عربي آمن" in request(f"/{arabic_route.lstrip('/')}", opener=reader)[2]
+	wiki_cr_call(
+		manager,
+		"update_cr_page",
+		{
+			"name": cr_name,
+			"doc_key": doc_key,
+			"fields": {"content": "# Phase 1\nEdited and rendered successfully."},
+		},
+	)
 
 	for payload in (
 		"<script>alert(1)</script>",
@@ -263,13 +265,35 @@ def assert_shared_session_permissions_and_security():
 		"<script",
 		'<iframe src="https://example.com"></iframe>',
 	):
-		status, _, body = request_status(
-			f"/api/resource/Wiki%20Document/{name}",
-			data={"content": payload},
-			method="PUT",
-			opener=manager,
+		status, _, body = wiki_cr_status(
+			manager,
+			"update_cr_page",
+			{"name": cr_name, "doc_key": doc_key, "fields": {"content": payload}},
 		)
 		assert status in (400, 417), (payload, status, body)
+
+	page = wiki_cr_call(manager, "get_cr_page", {"name": cr_name, "doc_key": doc_key})
+	arabic_page = wiki_cr_call(manager, "get_cr_page", {"name": cr_name, "doc_key": arabic_key})
+	wiki_cr_call(manager, "submit_change_request", {"name": cr_name})
+	wiki_cr_call(manager, "approve_change_request", {"name": cr_name})
+	wiki_cr_call(manager, "merge_change_request", {"name": cr_name})
+
+	document_query = urllib.parse.urlencode(
+		{"filters": json.dumps([["doc_key", "=", doc_key]]), "fields": json.dumps(["name", "content"])}
+	)
+	_, _, documents_body = request(f"/api/resource/Wiki%20Document?{document_query}", opener=reader)
+	documents = json.loads(documents_body)["data"]
+	assert len(documents) == 1 and "Edited and rendered successfully" in documents[0]["content"]
+	name = urllib.parse.quote(documents[0]["name"], safe="")
+	denied_status, _, _ = request_status(
+		f"/api/resource/Wiki%20Document/{name}",
+		data={"content": "reader must not write"},
+		method="PUT",
+		opener=reader,
+	)
+	assert denied_status in (403, 417), denied_status
+	assert "Edited and rendered successfully" in request(f"/{page['route'].lstrip('/')}", opener=reader)[2]
+	assert "محتوى عربي آمن" in request(f"/{arabic_page['route'].lstrip('/')}", opener=reader)[2]
 
 	# A minimal valid PNG exercises Wiki's endpoint, CRM's override, private
 	# storage, and Frappe's attachment permission chain.
