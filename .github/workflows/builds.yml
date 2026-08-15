@@ -1,4 +1,6 @@
-name: Build Container Image
+# Legacy Frappe v15 lane. Kept intact while the Wiki integration is evaluated
+# on the explicitly separate, immutable wiki-v16 lane.
+name: Build Container Image (legacy stable-v15)
 on:
   workflow_dispatch:
   push:
