@@ -264,7 +264,7 @@ before_tests = "crm.tests.before_tests"
 # "frappe.desk.doctype.event.event.get_events": "crm.event.get_events"
 # }
 override_whitelisted_methods = {
-	"wiki.api.upload_wiki_asset": "crm.wiki.security.upload_wiki_asset",
+	"wiki.api.upload_wiki_asset": "crm.wiki.upload.upload_wiki_asset",
 }
 #
 # each overriding function accepts a `data` argument;
