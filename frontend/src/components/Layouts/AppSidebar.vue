@@ -193,6 +193,7 @@ import NoteIcon from '@/components/Icons/NoteIcon.vue'
 import TaskIcon from '@/components/Icons/TaskIcon.vue'
 import CalendarIcon from '@/components/Icons/CalendarIcon.vue'
 import PhoneIcon from '@/components/Icons/PhoneIcon.vue'
+import BookOpenIcon from '~icons/lucide/book-open'
 import CollapseSidebar from '@/components/Icons/CollapseSidebar.vue'
 import NotificationsIcon from '@/components/Icons/NotificationsIcon.vue'
 import HelpIcon from '@/components/Icons/HelpIcon.vue'
@@ -299,6 +300,11 @@ const links = [
     icon: PhoneIcon,
     to: 'Call Logs',
   },
+  {
+    label: 'Docs',
+    icon: BookOpenIcon,
+    href: '/docs',
+  },
 ]
 
 const allViews = computed(() => {
@@ -317,8 +323,8 @@ const allViews = computed(() => {
         .map((link) => ({
           label: link.label,
           icon: link.icon,
-          key: link.to,
-          to: { name: link.to },
+          key: link.to || link.href,
+          to: link.to ? { name: link.to } : link.href,
         })),
     },
   ]
