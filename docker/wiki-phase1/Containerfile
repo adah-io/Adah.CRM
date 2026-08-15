@@ -89,6 +89,7 @@ CMD ["bench", "serve", "--port", "8000"]
 FROM runtime AS phase1
 
 COPY --chown=frappe:frappe docker/wiki-phase1/entrypoint.sh /opt/wiki-phase1/entrypoint.sh
+COPY --chown=frappe:frappe docker/wiki-phase1/Procfile /opt/wiki-phase1/Procfile
 COPY --chown=frappe:frappe docker/wiki-phase1/verify.py /opt/wiki-phase1/verify.py
 
 ENTRYPOINT ["bash", "/opt/wiki-phase1/entrypoint.sh"]

@@ -21,7 +21,7 @@ docker compose --file "${compose_file}" up --detach --wait
 docker compose --file "${compose_file}" exec --no-TTY frappe \
   env/bin/python /opt/wiki-phase1/verify.py
 
-# Bench's Procfile must still contain the shared infrastructure processes.
+# The production-like Procfile must keep all required application processes.
 docker compose --file "${compose_file}" top frappe | grep -E 'schedule|worker'
 docker compose --file "${compose_file}" top frappe | grep -E 'socketio|9000'
 

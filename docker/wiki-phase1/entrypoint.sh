@@ -23,4 +23,4 @@ if [[ ! -f "sites/${site}/site_config.json" ]]; then
 fi
 
 bench use "${site}"
-exec bench start
+exec bench start --procfile /opt/wiki-phase1/Procfile
