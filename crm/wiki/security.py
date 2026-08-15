@@ -82,7 +82,7 @@ def is_safe_asset_filename(filename: str | None) -> bool:
 
 
 def validate_wiki_document(doc, method=None) -> None:
-	"""Frappe doc-event adapter for Wiki Document persistence."""
+	"""Frappe doc-event adapter for live documents and revision content blobs."""
 	import frappe
 
 	try:

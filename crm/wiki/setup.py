@@ -55,14 +55,15 @@ def _audit_existing_content() -> None:
 
 	from crm.wiki.security import UnsafeWikiContentError, validate_markdown
 
-	for page in frappe.get_all("Wiki Document", fields=["name", "content"]):
-		try:
-			validate_markdown(page.content)
-		except UnsafeWikiContentError as error:
-			frappe.throw(
-				f"Wiki Document {page.name} violates the Adah Docs content policy: {error}",
-				frappe.ValidationError,
-			)
+	for doctype in ("Wiki Document", "Wiki Content Blob"):
+		for record in frappe.get_all(doctype, fields=["name", "content"]):
+			try:
+				validate_markdown(record.content)
+			except UnsafeWikiContentError as error:
+				frappe.throw(
+					f"{doctype} {record.name} violates the Adah Docs content policy: {error}",
+					frappe.ValidationError,
+				)
 
 
 def _configure_landing_page(space) -> None:

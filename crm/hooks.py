@@ -165,6 +165,9 @@ doc_events = {
 	"Wiki Document": {
 		"before_validate": ["crm.wiki.security.validate_wiki_document"],
 	},
+	"Wiki Content Blob": {
+		"before_validate": ["crm.wiki.security.validate_wiki_document"],
+	},
 	"Contact": {
 		"validate": ["crm.api.contact.validate"],
 	},
